@@ -66,3 +66,30 @@ jobs:
 
       - name: Scan Python code
         run: bandit -r app
+
+  terraform:
+    name: Terraform validation
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: terraform
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v6
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: "1.15.8"
+          terraform_wrapper: false
+
+      - name: Check Terraform formatting
+        run: terraform fmt -check
+
+      - name: Initialize Terraform
+        run: terraform init -backend=false -input=false
+
+      - name: Validate Terraform
+        run: terraform validate -no-color
