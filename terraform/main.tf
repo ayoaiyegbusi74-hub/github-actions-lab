@@ -25,10 +25,10 @@ resource "docker_container" "nginx" {
 
   ports {
     internal = 80
-    external = 8081
+    external = 8082
   }
 }
 
 output "service_url" {
-  value = "http://localhost:8081"
+  value = "http://localhost:8082"
 }
