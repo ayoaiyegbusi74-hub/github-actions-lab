@@ -1,43 +1,114 @@
 # DevSecOps Automation Lab
 
-A hands-on DevSecOps project that builds and improves an automated software-delivery pipeline using GitHub Actions, Jenkins, and Terraform.
+A hands-on DevSecOps project that demonstrates how code quality, testing, security checks, CI pipelines, and infrastructure validation can be automated on a Windows development machine.
 
-## Project goals
+## Project objective
 
-This project is designed to practice how modern DevSecOps automation works:
+The goal was to build a small but realistic DevSecOps workflow around a Python application and learn how three core automation tools work together:
 
-- Validate code automatically on every push and pull request
-- Enforce code-quality checks before merging changes
-- Run unit tests automatically
-- Scan Python code for common security issues
-- Review dependency changes for known vulnerabilities
-- Keep GitHub Actions dependencies up to date
-- Later, build a Jenkins pipeline and provision infrastructure with Terraform
+- **GitHub Actions** for cloud-based continuous integration and pull-request checks
+- **Jenkins** for a self-hosted CI pipeline running locally in Docker
+- **Terraform** for infrastructure as code
 
-## Current implementation
+The project intentionally uses a small Python application so the focus remains on the automation practices rather than application complexity.
 
-The project currently uses GitHub Actions for continuous integration.
+## What was built
 
-### CI workflow
+### Python application and tests
 
-The `DevSecOps CI` workflow runs when code is pushed or when a pull request targets the `main` branch.
+The repository contains a simple Python `add` function and unit tests that verify normal and negative-number inputs.
 
-It includes three parallel checks:
+```text
+app/
+├── __init__.py
+└── app.py
+
+tests/
+└── test_app.py
+```
+
+## GitHub Actions implementation
+
+GitHub Actions runs automatically on pushes and pull requests targeting `main`.
+
+The CI workflow performs:
 
 | Check | Tool | Purpose |
 | --- | --- | --- |
-| Lint | Ruff | Checks code quality and formatting |
+| Lint | Ruff | Checks Python code quality and formatting |
 | Unit tests | pytest | Verifies application behavior |
 | Security scan | Bandit | Scans Python code for common security issues |
+| Terraform validation | Terraform | Checks formatting and validates infrastructure configuration |
 
-A pull request should only be merged after all checks pass.
+Additional repository security controls include:
 
-### Dependency security
+- **Dependency Review** to identify vulnerable dependencies introduced in pull requests
+- **Dependabot** to check GitHub Actions dependencies weekly and open update pull requests
 
-This project also includes supply-chain security controls:
+This means a change is reviewed automatically before it is merged into `main`.
 
-- **Dependency Review** checks pull requests for newly introduced vulnerable dependencies.
-- **Dependabot** checks GitHub Actions dependencies weekly and opens pull requests when updates are available.
+## Jenkins implementation
+
+Jenkins runs locally in Docker Desktop and provides a second, self-hosted CI system.
+
+The Jenkins controller uses a custom Docker image that includes:
+
+- Git
+- Python
+- pytest
+- Ruff
+- Bandit
+- Terraform
+
+The Jenkins pipeline is defined in the repository’s `Jenkinsfile` and includes these stages:
+
+```text
+Checkout
+  ↓
+Lint
+  ↓
+Unit tests
+  ↓
+Security scan
+  ↓
+Terraform validation
+```
+
+Jenkins checks the repository for changes on a schedule and can automatically build when it detects a new change on `main`.
+
+Jenkins is available locally at:
+
+```text
+http://localhost:8080
+```
+
+## Terraform implementation
+
+Terraform manages local Docker infrastructure rather than cloud resources. This keeps the lab safe, free, and easy to run on a personal PC.
+
+Terraform creates and manages:
+
+- An Nginx Docker image
+- A Docker container named `terraform-nginx-lab`
+- An Nginx service available at `http://localhost:8082`
+
+```text
+terraform/
+├── main.tf
+└── .terraform.lock.hcl
+```
+
+Terraform state remains local and is excluded from Git. The provider lock file is committed so other environments use the same provider version.
+
+CI validates Terraform configuration with:
+
+```text
+terraform fmt -check
+terraform init -backend=false -input=false
+terraform validate -no-color
+```
+
+Infrastructure changes are not applied automatically by CI. Running `terraform apply` remains a deliberate local action.
 
 ## Project structure
 
@@ -48,69 +119,71 @@ github-actions-lab/
 │   └── app.py
 ├── tests/
 │   └── test_app.py
+├── terraform/
+│   ├── main.tf
+│   └── .terraform.lock.hcl
+├── jenkins/
+│   └── Dockerfile
 ├── .github/
 │   ├── workflows/
 │   │   ├── ci.yml
 │   │   └── dependency-review.yml
 │   └── dependabot.yml
+├── Jenkinsfile
+├── .gitignore
 └── README.md
 ```
 
-## Local application
+## Key outcomes
 
-The sample Python application provides a simple `add` function.
+This project successfully demonstrates:
 
-Run it locally:
+- Version-controlled application code and infrastructure code
+- Automated pull-request checks
+- Python linting, testing, and basic security scanning
+- Dependency review and automated update monitoring
+- A local Jenkins pipeline running inside Docker
+- Terraform-managed Docker infrastructure
+- Safe infrastructure validation in CI without automatic deployment
 
-```powershell
-py app\app.py
-```
+## Local commands
 
-Run the tests locally:
+Run Python tests:
 
 ```powershell
 py -m pytest
 ```
 
-## CI/CD workflow
+View Terraform-managed resources:
 
-```text
-Developer creates a branch
-        ↓
-Developer pushes changes
-        ↓
-Pull request is opened
-        ↓
-GitHub Actions runs linting, tests, and security scanning
-        ↓
-Dependency Review checks dependency changes
-        ↓
-All checks pass
-        ↓
-Pull request is merged into main
+```powershell
+cd terraform
+terraform state list
 ```
 
-## Planned work
+Preview Terraform infrastructure changes:
 
-The next phases of this lab are:
+```powershell
+terraform plan
+```
 
-1. **Jenkins**
-   - Run Jenkins locally on Windows using Docker
-   - Create a Jenkins pipeline for the same application
-   - Compare Jenkins pipelines with GitHub Actions workflows
+Apply an approved infrastructure change:
 
-2. **Terraform**
-   - Learn Terraform fundamentals
-   - Define cloud or local infrastructure as code
-   - Integrate infrastructure validation into CI
+```powershell
+terraform apply
+```
 
-3. **Pipeline improvements**
-   - Add dependency manifests and dependency auditing
-   - Add artifact handling
-   - Add branch-protection rules
-   - Add deployment stages
+## Future improvements
 
-## Notes
+Possible next steps include:
 
-This README is a living document. It will be updated as the project evolves and as new DevSecOps tools are added.
+- Configure a secure GitHub webhook for immediate Jenkins builds
+- Add Terraform plan output to pull-request comments
+- Use a remote Terraform state backend for team collaboration
+- Add container image scanning
+- Add deployment approval stages
+- Provision cloud infrastructure with Terraform
 
+## Status
+
+This project is complete as a local DevSecOps automation lab. The Nginx service remains managed by Terraform on port `8082`, and Jenkins remains available on port `8080`.
