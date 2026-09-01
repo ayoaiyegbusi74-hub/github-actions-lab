@@ -35,11 +35,13 @@ pipeline {
                 sh 'bandit -r app'
             }
         }
-    }
-
-    post {
-        always {
-            junit allowEmptyResults: true, testResults: 'test-results.xml'
+        
+        stage('Terraform validation') {
+            steps {
+                sh 'terraform fmt -check'
+                sh 'terraform init -backend=false -input=false'
+                sh 'terraform validate -no-color'
+            }
         }
     }
 }
